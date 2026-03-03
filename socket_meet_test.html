@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Socket.IO ZEGOCLOUD Test</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+        integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+        crossorigin="anonymous"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; color: #111; }
+    h1 { font-size: 20px; margin-bottom: 12px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    label { display: block; font-weight: 600; margin: 8px 0 4px; }
+    input[type="text"], select, textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; }
+    textarea { min-height: 70px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    button { background: #2563eb; color: white; border: none; padding: 10px 14px; border-radius: 6px; cursor: pointer; margin-top: 12px; }
+    button:disabled { background: #93c5fd; cursor: not-allowed; }
+    pre { background: #0b1021; color: #e5e7eb; padding: 12px; border-radius: 6px; overflow: auto; max-height: 260px; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .success { color: #065f46; }
+    .error { color: #b91c1c; }
+    .link { color: #2563eb; text-decoration: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 12px; background: #eef2ff; color: #3730a3; }
+  </style>
+</head>
+<body>
+  <h1>Socket.IO ZEGOCLOUD Tester <span id="connStatus" class="badge">Disconnected</span></h1>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px; font-size:16px;">Connect</h2>
+    <label for="baseUrl">Backend Base URL</label>
+    <input id="baseUrl" type="text" value="http://127.0.0.1:8000" />
+
+    <div class="row">
+      <div>
+        <label for="userId">Auth userId</label>
+        <input id="userId" type="text" placeholder="doctorId/patientId/counselorId" />
+      </div>
+      <div>
+        <label for="role">Role</label>
+        <select id="role">
+          <option value="doctor">doctor</option>
+          <option value="user">user</option>
+          <option value="counselor">counselor</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="connectBtn">Connect Socket</button>
+    <button id="disconnectBtn" style="background:#6b7280;" disabled>Disconnect</button>
+    <div id="status" class="muted" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px; font-size:16px;">Call: Initiate</h2>
+    <div class="row3">
+      <div>
+        <label for="callerId">callerId</label>
+        <input id="callerId" type="text" placeholder="must match connected userId for auth" />
+      </div>
+      <div>
+        <label for="callerRole">callerRole</label>
+        <select id="callerRole">
+          <option value="doctor">doctor</option>
+          <option value="user">user</option>
+          <option value="counselor">counselor</option>
+        </select>
+      </div>
+      <div>
+        <label for="callType">callType</label>
+        <select id="callType">
+          <option value="video">video</option>
+          <option value="audio">audio</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="calleeId">calleeId</label>
+        <input id="calleeId" type="text" />
+      </div>
+      <div>
+        <label for="calleeRole">calleeRole</label>
+        <select id="calleeRole">
+          <option value="doctor">doctor</option>
+          <option value="user">user</option>
+          <option value="counselor">counselor</option>
+        </select>
+      </div>
+    </div>
+    <label for="appointmentId">appointmentId (optional)</label>
+    <input id="appointmentId" type="text" />
+    <button id="initiateBtn">Emit: call_initiate</button>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px; font-size:16px;">Call: Accept / Reject / End</h2>
+    <label for="sessionId">sessionId</label>
+    <input id="sessionId" type="text" placeholder="filled from call_initiated/call_invite" />
+    <div class="row">
+      <button id="acceptBtn">Emit: call_accept</button>
+      <button id="rejectBtn" style="background:#b91c1c;">Emit: call_reject</button>
+    </div>
+    <div class="row">
+      <input id="durationSec" type="text" placeholder="durationSec (optional)" />
+      <button id="endBtn" style="background:#6d28d9;">Emit: call_end</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px; font-size:16px;">Call: History</h2>
+    <div class="row">
+      <div>
+        <label for="histUserId">userId</label>
+        <input id="histUserId" type="text" />
+      </div>
+      <div>
+        <label for="histPage">page</label>
+        <input id="histPage" type="text" value="1" />
+      </div>
+    </div>
+    <label for="histLimit">limit</label>
+    <input id="histLimit" type="text" value="20" />
+    <button id="historyBtn">Emit: call_history</button>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px; font-size:16px;">Appointment: Create Zego Meet</h2>
+    <label for="apptId">appointmentId</label>
+    <input id="apptId" type="text" />
+    <button id="apptMeetBtn">Emit: appointment_zego_meet_create</button>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px; font-size:16px;">Events & Logs</h2>
+    <pre id="log">(no events)</pre>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let socket = null;
+
+    function log(msg, obj) {
+      const time = new Date().toISOString();
+      const line = obj ? `${time} - ${msg}: ${JSON.stringify(obj, null, 2)}` : `${time} - ${msg}`;
+      $("log").textContent = ("" + $("log").textContent + "\n" + line).trim();
+      $("log").scrollTop = $("log").scrollHeight;
+    }
+
+    function setConn(connected) {
+      $("connStatus").textContent = connected ? "Connected" : "Disconnected";
+      $("connectBtn").disabled = connected;
+      $("disconnectBtn").disabled = !connected;
+    }
+
+    function bindCoreEvents() {
+      socket.on("connect", () => { log("connected", { sid: socket.id }); setConn(true); });
+      socket.on("disconnect", (reason) => { log("disconnected", { reason }); setConn(false); });
+      socket.on("connect_error", (err) => { log("connect_error", { message: err.message }); setConn(false); });
+
+      // Zego call events
+      socket.on("call_invite", (data) => { log("call_invite", data); if (data && data.sessionId) $("sessionId").value = data.sessionId; });
+      socket.on("call_initiated", (data) => { log("call_initiated", data); if (data && data.sessionId) $("sessionId").value = data.sessionId; });
+      socket.on("call_accept", (data) => log("call_accept", data));
+      socket.on("call_reject", (data) => log("call_reject", data));
+      socket.on("call_end", (data) => log("call_end", data));
+      socket.on("call_history_response", (data) => log("call_history_response", data));
+      socket.on("appointment_zego_meet_response", (data) => log("appointment_zego_meet_response", data));
+      socket.on("call_error", (data) => log("call_error", data));
+
+      // Generic chat/server events if any
+      socket.on("user_status", (data) => log("user_status", data));
+      socket.on("error", (data) => log("error", data));
+    }
+
+    $("connectBtn").addEventListener("click", () => {
+      const baseUrl = $("baseUrl").value.trim().replace(/\/$/, "");
+      const userId = $("userId").value.trim();
+      const role = $("role").value;
+      if (!baseUrl || !userId || !role) {
+        alert("Enter base URL, userId and role");
+        return;
+      }
+      try {
+        socket = io(baseUrl, { transports: ["websocket"], auth: { userId, role } });
+        bindCoreEvents();
+        log("connecting", { baseUrl, userId, role });
+      } catch (e) {
+        log("connect_exception", { error: e.message });
+      }
+    });
+
+    $("disconnectBtn").addEventListener("click", () => {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    });
+
+    $("initiateBtn").addEventListener("click", () => {
+      if (!socket || !socket.connected) return alert("Socket not connected");
+
+      const payload = {
+        callerId: $("userId").value.trim(),   // 👈 always use connected userId
+        callerRole: $("role").value,          // 👈 always use connected role
+        calleeId: $("calleeId").value.trim(),
+        calleeRole: $("calleeRole").value,
+        callType: $("callType").value,
+        appointmentId: $("appointmentId").value.trim() || undefined,
+      };
+
+      log("emit call_initiate", payload);
+      socket.emit("call_initiate", payload);
+    });
+
+
+    $("acceptBtn").addEventListener("click", () => {
+      if (!socket || !socket.connected) return alert("Socket not connected");
+      const payload = { sessionId: $("sessionId").value.trim() };
+      log("emit call_accept", payload);
+      socket.emit("call_accept", payload);
+    });
+
+    $("rejectBtn").addEventListener("click", () => {
+      if (!socket || !socket.connected) return alert("Socket not connected");
+      const payload = { sessionId: $("sessionId").value.trim() };
+      log("emit call_reject", payload);
+      socket.emit("call_reject", payload);
+    });
+
+    $("endBtn").addEventListener("click", () => {
+      if (!socket || !socket.connected) return alert("Socket not connected");
+      const s = $("sessionId").value.trim();
+      const d = $("durationSec").value.trim();
+      const payload = { sessionId: s, ...(d ? { durationSec: Number(d) } : {}) };
+      log("emit call_end", payload);
+      socket.emit("call_end", payload);
+    });
+
+    $("historyBtn").addEventListener("click", () => {
+      if (!socket || !socket.connected) return alert("Socket not connected");
+      const payload = {
+        userId: $("histUserId").value.trim(),
+        page: Number($("histPage").value || 1),
+        limit: Number($("histLimit").value || 20),
+      };
+      log("emit call_history", payload);
+      socket.emit("call_history", payload);
+    });
+
+    $("apptMeetBtn").addEventListener("click", () => {
+      if (!socket || !socket.connected) return alert("Socket not connected");
+      const payload = { appointmentId: $("apptId").value.trim() };
+      log("emit appointment_zego_meet_create", payload);
+      socket.emit("appointment_zego_meet_create", payload);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,412 @@
+{
+  "info": {
+    "_postman_id": "f8e49d23-5c7b-4e8c-b4a1-e06c8a123456",
+    "name": "MHA API Tests",
+    "description": "API tests for Mental Health Application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"Test@123\",\n    \"confirmPassword\": \"Test@123\",\n    \"role\": \"patient\",\n    \"phoneNumber\": \"+911234567890\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "register"]
+            },
+            "description": "Register a new user"
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set('authToken', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"Test@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "login"]
+            },
+            "description": "Login and get authentication token"
+          }
+        },
+        {
+          "name": "Register Doctor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "firstName",
+                  "value": "Dr. John",
+                  "type": "text"
+                },
+                {
+                  "key": "lastName",
+                  "value": "Smith",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "dr.smith@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "dateOfBirth",
+                  "value": "1980-01-01",
+                  "type": "text"
+                },
+                {
+                  "key": "phoneNumber",
+                  "value": "+911234567890",
+                  "type": "text"
+                },
+                {
+                  "key": "qualification",
+                  "value": "MBBS, MD",
+                  "type": "text"
+                },
+                {
+                  "key": "designation",
+                  "value": "Senior Psychiatrist",
+                  "type": "text"
+                },
+                {
+                  "key": "department",
+                  "value": "Psychiatry",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "type": "text"
+                },
+                {
+                  "key": "licenseNumber",
+                  "value": "MED123456",
+                  "type": "text"
+                },
+                {
+                  "key": "specialization",
+                  "value": "Clinical Psychology",
+                  "type": "text"
+                },
+                {
+                  "key": "experienceYears",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "city",
+                  "value": "Mumbai",
+                  "type": "text"
+                },
+                {
+                  "key": "state",
+                  "value": "Maharashtra",
+                  "type": "text"
+                },
+                {
+                  "key": "country",
+                  "value": "India",
+                  "type": "text"
+                },
+                {
+                  "key": "postalCode",
+                  "value": "400001",
+                  "type": "text"
+                },
+                {
+                  "key": "addressLine",
+                  "value": "123 Healthcare Street",
+                  "type": "text"
+                },
+                {
+                  "key": "consultationMode",
+                  "value": "video,voice,in-person",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/create-doctor",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "create-doctor"]
+            },
+            "description": "Register a new doctor"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultation Rates",
+      "item": [
+        {
+          "name": "Set Doctor Rates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"videoCallRate\": 150,\n    \"voiceCallRate\": 100,\n    \"inPerson15Min\": 500,\n    \"inPerson30Min\": 900,\n    \"inPerson60Min\": 1600\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/consultation-rates/doctor/set",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultation-rates", "doctor", "set"]
+            },
+            "description": "Set consultation rates for a doctor"
+          }
+        },
+        {
+          "name": "Get Doctor Rates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consultation-rates/doctor/rates/{{doctorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "consultation-rates",
+                "doctor",
+                "rates",
+                "{{doctorId}}"
+              ]
+            },
+            "description": "Get consultation rates for a specific doctor"
+          }
+        },
+        {
+          "name": "List Doctor Rates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consultation-rates/doctor/list?search=&min_experience=5&max_video_rate=200&consultation_mode=video&specialization=Psychology&sort_by=rating&sort_order=desc&limit=10&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultation-rates", "doctor", "list"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "min_experience",
+                  "value": "5"
+                },
+                {
+                  "key": "max_video_rate",
+                  "value": "200"
+                },
+                {
+                  "key": "consultation_mode",
+                  "value": "video"
+                },
+                {
+                  "key": "specialization",
+                  "value": "Psychology"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "rating"
+                },
+                {
+                  "key": "sort_order",
+                  "value": "desc"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "skip",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "List all doctors with rates and filters"
+          }
+        },
+        {
+          "name": "Set Counselor Rates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"videoCallRate\": 120,\n    \"voiceCallRate\": 80,\n    \"inPerson15Min\": 400,\n    \"inPerson30Min\": 700,\n    \"inPerson60Min\": 1200\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/consultation-rates/counselor/set",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultation-rates", "counselor", "set"]
+            },
+            "description": "Set consultation rates for a counselor"
+          }
+        },
+        {
+          "name": "Get Counselor Rates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consultation-rates/counselor/rates/{{counselorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "consultation-rates",
+                "counselor",
+                "rates",
+                "{{counselorId}}"
+              ]
+            },
+            "description": "Get consultation rates for a specific counselor"
+          }
+        },
+        {
+          "name": "List Counselor Rates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consultation-rates/counselor/list?search=&min_experience=2&max_video_rate=150&consultation_mode=video&specialization=Counseling&sort_by=rating&sort_order=desc&limit=10&skip=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultation-rates", "counselor", "list"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "min_experience",
+                  "value": "2"
+                },
+                {
+                  "key": "max_video_rate",
+                  "value": "150"
+                },
+                {
+                  "key": "consultation_mode",
+                  "value": "video"
+                },
+                {
+                  "key": "specialization",
+                  "value": "Counseling"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "rating"
+                },
+                {
+                  "key": "sort_order",
+                  "value": "desc"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "skip",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "List all counselors with rates and filters"
+          }
+        }
+      ]
+    }
+  ]
+}

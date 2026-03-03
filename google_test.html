@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Google Login + Complete Profile</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--bg:#f6f8fb;--card:#fff;--accent:#3b82f6;--muted:#6b7280;--danger:#ef4444}
+    body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);margin:0;padding:24px;color:#111}
+    .wrap{max-width:900px;margin:0 auto}
+    .buttons{display:flex;gap:12px;align-items:center}
+    button.primary{background:var(--accent);color:#fff;border:0;padding:10px 16px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #d1d5db;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .card{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.06);margin-top:18px}
+    .muted{color:var(--muted);font-size:13px}
+    form .row{display:flex;gap:12px;margin-bottom:10px}
+    form label{display:block;font-size:13px;margin-bottom:6px;color:#111}
+    input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], select, textarea{
+      width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;box-sizing:border-box
+    }
+    textarea{min-height:80px;resize:vertical}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .hidden{display:none}
+    .result{white-space:pre-wrap;background:#0f172a;color:#fff;padding:12px;border-radius:8px;margin-top:12px}
+    .small{font-size:12px;color:var(--muted)}
+    .error{color:var(--danger);font-weight:600}
+    input[type="file"]{padding:4px}
+    .footer{margin-top:12px;font-size:13px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Google Login → Complete Profile</h2>
+    <div class="card">
+      <div class="buttons">
+        <button id="btnGoogle" class="primary">Login with Google</button>
+        <div class="muted">Opens popup, then shows registration form if more info required</div>
+      </div>
+
+      <div id="status" class="small" style="margin-top:12px">Not logged</div>
+    </div>
+
+    <div id="formCard" class="card hidden" style="margin-top:18px">
+      <h3>Complete registration</h3>
+      <p class="muted">Fill required fields then submit. Fields come from register_routes.register</p>
+
+      <form id="regForm">
+        <div class="grid-2">
+          <div>
+            <label>Role*</label>
+            <select name="role" required>
+              <option value="user">User (patient)</option>
+              <option value="doctor">Doctor</option>
+              <option value="counselor">Counselor</option>
+            </select>
+          </div>
+          <div>
+            <label>Username*</label>
+            <input type="text" name="username" required />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>First name</label>
+            <input type="text" name="firstName" />
+          </div>
+          <div>
+            <label>Last name</label>
+            <input type="text" name="lastName" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>Email*</label>
+            <input type="email" name="email" required />
+          </div>
+          <div>
+            <label>Password (optional)</label>
+            <input type="password" name="password" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>Phone number</label>
+            <input type="text" name="phoneNumber" />
+          </div>
+          <div>
+            <label>Gender</label>
+            <input type="text" name="gender" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>Marital status</label>
+            <input type="text" name="maritalStatus" />
+          </div>
+          <div>
+            <label>Blood group</label>
+            <input type="text" name="bloodGroup" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>Date of birth (DD/MM/YYYY)</label>
+            <input type="text" name="dateOfBirth" placeholder="31/12/1990" />
+          </div>
+          <div>
+            <label>Joining date (DD/MM/YYYY)</label>
+            <input type="text" name="joiningDate" placeholder="01/01/2024" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>Qualification</label>
+            <input type="text" name="qualification" />
+          </div>
+          <div>
+            <label>Specialization (comma separated)</label>
+            <input type="text" name="specialization" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>Language (comma separated)</label>
+            <input type="text" name="language" />
+          </div>
+          <div>
+            <label>Experience years</label>
+            <input type="number" name="experienceYears" min="0" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label>License number</label>
+            <input type="text" name="licenseNumber" />
+          </div>
+          <div>
+            <label>Consultation mode</label>
+            <input type="text" name="consultationMode" />
+          </div>
+        </div>
+
+        <div>
+          <label>Short bio</label>
+          <textarea name="shortBio"></textarea>
+        </div>
+
+        <div class="grid-2" style="align-items:center">
+          <div>
+            <label>Profile photo</label>
+            <input type="file" name="profilePhoto" accept="image/*" />
+          </div>
+          <div>
+            <label style="display:block">Terms accepted</label>
+            <input type="checkbox" name="termsAccepted" value="true" /> <span class="small muted">check to accept</span>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button type="submit" class="primary">Submit registration</button>
+          <button type="button" id="btnCancel" class="ghost">Cancel</button>
+        </div>
+      </form>
+
+      <div id="result" class="result hidden"></div>
+    </div>
+
+    <div class="footer">If your backend runs on a different origin, edit BACKEND variable in the script at top of this file.</div>
+  </div>
+
+  <script>
+    // Set BACKEND to your API origin (required). Example: "http://localhost:8080"
+    const BACKEND = "http://127.0.0.1:8000"; // <-- change this to your FastAPI base URL
+    const googleUrl = (BACKEND || location.origin) + "/api/auth/google";
+    const registerUrl = (BACKEND || location.origin) + "/api/register";
+
+    const btnGoogle = document.getElementById("btnGoogle");
+    const statusEl = document.getElementById("status");
+    const formCard = document.getElementById("formCard");
+    const regForm = document.getElementById("regForm");
+    const resultEl = document.getElementById("result");
+    const btnCancel = document.getElementById("btnCancel");
+
+    let popup = null;
+    btnGoogle.addEventListener("click", () => {
+      // open popup centered
+      const w = 600, h = 700;
+      const left = (screen.width/2)-(w/2), top = (screen.height/2)-(h/2);
+      popup = window.open(googleUrl, "google_oauth", `width=${w},height=${h},top=${top},left=${left}`);
+      statusEl.textContent = "Popup opened. Complete Google login...";
+    });
+
+    window.addEventListener("message", (ev) => {
+      try {
+        const payload = ev.data;
+        if (!payload || !payload.success) return;
+        statusEl.textContent = "Logged: " + (payload.data?.email || "unknown");
+        // pre-fill form
+        const email = payload.data?.email;
+        const username = (email || "").split("@")[0];
+        regForm.elements["email"].value = email || "";
+        regForm.elements["username"].value = regForm.elements["username"].value || username;
+        // show form if new user or incomplete
+        const isNew = !!payload.data?.isNewUser;
+        const incomplete = payload.data?.isProfileComplete === false;
+        if (isNew || incomplete) {
+          formCard.classList.remove("hidden");
+        } else {
+          resultEl.classList.remove("hidden");
+          resultEl.textContent = "No additional info required. You are logged in.\n\nServer payload:\n" + JSON.stringify(payload, null, 2);
+        }
+        // close popup if still open
+        if (popup && !popup.closed) popup.close();
+      } catch (err) {
+        console.error(err);
+      }
+    }, false);
+
+    regForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      resultEl.classList.add("hidden");
+      resultEl.textContent = "";
+      const formData = new FormData(regForm);
+
+      // normalize checkbox to boolean expected by backend
+      formData.set("termsAccepted", regForm.elements["termsAccepted"].checked ? "true" : "false");
+
+      // note: backend expects date format DD/MM/YYYY as strings, leave as is
+      try {
+        const resp = await fetch(registerUrl, {
+          method: "POST",
+          body: formData
+        });
+        const json = await resp.json().catch(()=>({message:"non-json response"}));
+        resultEl.classList.remove("hidden");
+        resultEl.style.background = resp.ok ? "#0f172a" : "#7f1d1d";
+        resultEl.textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        resultEl.classList.remove("hidden");
+        resultEl.style.background = "#7f1d1d";
+        resultEl.textContent = "Network error: "+err.message;
+      }
+    });
+
+    btnCancel.addEventListener("click", () => {
+      formCard.classList.add("hidden");
+    });
+
+    // helpful: if popup redirects and not using postMessage, you can poll for popup changes:
+    // (optional) monitor popup closed
+    setInterval(()=> {
+      if (popup && popup.closed) {
+        popup = null;
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZEGOCLOUD Meet Tester</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; color: #111; }
+    h1 { font-size: 20px; margin-bottom: 12px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    label { display: block; font-weight: 600; margin: 8px 0 4px; }
+    input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; }
+    textarea { min-height: 80px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button { background: #2563eb; color: white; border: none; padding: 10px 14px; border-radius: 6px; cursor: pointer; margin-top: 12px; }
+    button:disabled { background: #93c5fd; cursor: not-allowed; }
+    pre { background: #0b1021; color: #e5e7eb; padding: 12px; border-radius: 6px; overflow: auto; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .success { color: #065f46; }
+    .error { color: #b91c1c; }
+    .link { color: #2563eb; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>ZEGOCLOUD Meet Tester</h1>
+  <div class="card">
+    <p class="muted">Use this page to hit your backend endpoint and create a Zego meet for a given appointment. You must supply a valid JWT with role "admin" or "doctor".</p>
+    <label for="baseUrl">Backend Base URL</label>
+    <input id="baseUrl" type="text" value="http://127.0.0.1:8000" />
+
+    <label for="jwt">JWT Bearer Token</label>
+    <textarea id="jwt" placeholder="Paste your JWT here"></textarea>
+
+    <div class="row">
+      <div>
+        <label for="appointmentId">Appointment ID</label>
+        <input id="appointmentId" type="text" placeholder="e.g., APT_123" />
+      </div>
+    </div>
+
+    <button id="createBtn">Create Zego Meet</button>
+    <div id="status" class="muted" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px; font-size:16px;">Response</h2>
+    <div id="summary"></div>
+    <pre id="output">(no response)</pre>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function setLoading(loading) {
+      $("createBtn").disabled = loading;
+      $("status").textContent = loading ? "Request in progress..." : "";
+    }
+
+    function renderSummary(json) {
+      const details = (json && json.details) || {};
+      const joinUrl = details.joinUrl || null;
+      const html = `
+        <div>
+          <div><strong>Message:</strong> ${json && json.message ? json.message : ""}</div>
+          <div><strong>Room/Session ID:</strong> ${details.roomId || details.sessionId || details.zegoSessionId || ""}</div>
+          <div><strong>Zego App ID:</strong> ${details.zegoAppId || ""}</div>
+          ${joinUrl ? `<div><strong>Join URL:</strong> <a class="link" href="${joinUrl}" target="_blank" rel="noopener">Open</a></div>` : ""}
+        </div>
+      `;
+      $("summary").innerHTML = html;
+    }
+
+    async function createMeet() {
+      const baseUrl = $("baseUrl").value.trim().replace(/\/$/, "");
+      const token = $("jwt").value.trim();
+      const appointmentId = $("appointmentId").value.trim();
+
+      if (!baseUrl) return alert("Please enter backend base URL");
+      if (!appointmentId) return alert("Please enter Appointment ID");
+      if (!token) return alert("Please paste a JWT token");
+
+      const url = `${baseUrl}/api/appointments/${encodeURIComponent(appointmentId)}/zego-meet`;
+
+      setLoading(true);
+      $("output").textContent = "(no response)";
+      $("summary").innerHTML = "";
+
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({})
+        });
+
+        const text = await res.text();
+        let json;
+        try { json = JSON.parse(text); } catch (_) { json = { raw: text }; }
+
+        $("output").textContent = JSON.stringify(json, null, 2);
+        if (res.ok) {
+          $("status").innerHTML = '<span class="success">Success</span>';
+          renderSummary(json);
+        } else {
+          $("status").innerHTML = `<span class="error">HTTP ${res.status}</span>`;
+        }
+      } catch (err) {
+        $("status").innerHTML = `<span class="error">Network error: ${err}</span>`;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    $("createBtn").addEventListener("click", createMeet);
+  </script>
+</body>
+</html>

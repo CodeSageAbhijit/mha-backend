@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Call Routes</title>
+</head>
+<body>
+  <h2>📞 Test Call API</h2>
+
+  <h3>Initiate Call</h3>
+  <form id="initiateForm">
+    Caller ID: <input type="text" id="callerId" value="doctor123"><br>
+    Caller Role: <input type="text" id="callerRole" value="doctor"><br>
+    Callee ID: <input type="text" id="calleeId" value="patient456"><br>
+    Callee Role: <input type="text" id="calleeRole" value="user"><br>
+    Call Type: 
+    <select id="callType">
+      <option value="audio">Audio</option>
+      <option value="video">Video</option>
+    </select><br>
+    <button type="submit">Initiate Call</button>
+  </form>
+
+  <pre id="initiateResult"></pre>
+
+  <h3>Accept Call</h3>
+  <form id="acceptForm">
+    Session ID: <input type="text" id="sessionId"><br>
+    <button type="submit">Accept Call</button>
+  </form>
+
+  <pre id="acceptResult"></pre>
+
+  <script>
+    const API_BASE = "http://localhost:8080/calls"; // adjust if needed
+    const token = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..34lTAqgObXflZXytnn4n1A.NcgXx_cIkzTNmnfrClU4UCVmyWPpCqbMbSHn7ti0X3MBKVDbjAgE3mNuN6CzBPMQo74Xh3S6eDSfJiWo2-gxcufNIbpdjncTRA4YWyn4chGrrvC7L6h52rHoj_Kt-Hlz2fDy8DEUNVi3gKuQoz-W5RBmNB1IKe89pnCrjmB01izWTEw1aNd7f_TsTFTZT3UJnGFU0k-1mrRs5EuJiaJgNQ.zxfymNjiUZj-s9ePPj-NesKbeK-ieSn84vADVnO0wIw"; // replace with actual JWT
+
+    document.getElementById("initiateForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const body = {
+        callerId: document.getElementById("callerId").value,
+        callerRole: document.getElementById("callerRole").value,
+        calleeId: document.getElementById("calleeId").value,
+        calleeRole: document.getElementById("calleeRole").value,
+        callType: document.getElementById("callType").value,
+      };
+      const res = await fetch(`${API_BASE}/initiate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      document.getElementById("initiateResult").textContent = JSON.stringify(data, null, 2);
+
+      if (data.data?.sessionId) {
+        document.getElementById("sessionId").value = data.data.sessionId;
+      }
+    };
+
+    document.getElementById("acceptForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const body = { sessionId: document.getElementById("sessionId").value };
+      const res = await fetch(`${API_BASE}/accept`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      document.getElementById("acceptResult").textContent = JSON.stringify(data, null, 2);
+    };
+  </script>
+</body>
+</html>

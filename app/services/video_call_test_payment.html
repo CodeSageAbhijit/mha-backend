@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Call & Wallet Test</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{padding:20px;background:#f8f9fa}
+    .log{height:220px;overflow:auto;background:#fff;padding:10px;border:1px solid #ddd;border-radius:6px}
+    .video-box{background:#000; height:240px; display:flex; align-items:center; justify-content:center; color:#fff}
+    .small{font-size:.9rem}
+    .badge-charge{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h4 class="mb-3">Payment & Video Call Test UI</h4>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card p-3">
+          <h6>Connection</h6>
+          <label class="form-label small">User ID</label>
+          <input id="userId" class="form-control mb-2" placeholder="e.g. MHA-P123" value="">
+          <label class="form-label small">Role</label>
+          <select id="role" class="form-select mb-2">
+            <option value="user">user</option>
+            <option value="doctor">doctor</option>
+            <option value="counselor">counselor</option>
+          </select>
+          <div class="d-grid gap-2">
+            <button id="btnConnect" class="btn btn-primary">Connect</button>
+            <button id="btnDisconnect" class="btn btn-outline-secondary" disabled>Disconnect</button>
+          </div>
+          <hr>
+          <h6>Wallet</h6>
+          <div class="mb-2 small">Per-minute charge: <span class="badge bg-info badge-charge">Rs <span id="perMinute">5</span></span></div>
+          <label class="form-label small">Recharge amount (Rs)</label>
+          <input id="rechargeAmount" class="form-control mb-2" value="100">
+          <button id="btnRecharge" class="btn btn-success w-100 mb-2">Recharge Wallet</button>
+          <div id="walletInfo" class="small">Balance: <strong id="balanceDisplay">-</strong></div>
+        </div>
+
+        <div class="card p-3 mt-3">
+          <h6>Call Controls</h6>
+          <label class="form-label small">Callee ID</label>
+          <input id="calleeId" class="form-control mb-2" placeholder="provider id e.g. MHA-D001">
+          <label class="form-label small">Callee Role</label>
+          <select id="calleeRole" class="form-select mb-2">
+            <option value="doctor">doctor</option>
+            <option value="counselor">counselor</option>
+          </select>
+
+          <div class="d-grid gap-2">
+            <button id="btnInitiate" class="btn btn-primary">Initiate Call</button>
+            <button id="btnAccept" class="btn btn-success">Accept Call</button>
+            <button id="btnEnd" class="btn btn-danger">End Call</button>
+          </div>
+          <div class="mt-2 small">Session: <span id="sessionId" class="text-monospace">-</span></div>
+          <div class="mt-2 small">Call status: <span id="callStatus">-</span></div>
+          <div class="mt-2 small">Timer: <span id="callTimer">00:00</span></div>
+        </div>
+      </div>
+
+      <div class="col-md-8">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="card p-3">
+              <h6>Video Preview (local)</h6>
+              <div class="d-flex gap-2">
+                <div class="video-box w-50" id="localVideoBox">
+                  <video id="localVideo" autoplay muted playsinline style="max-width:100%;max-height:100%;"></video>
+                </div>
+                <div class="video-box w-50" id="remoteVideoBox">
+                  <video id="remoteVideo" autoplay playsinline style="max-width:100%;max-height:100%;"></video>
+                </div>
+              </div>
+              <div class="mt-2 d-flex gap-2">
+                <button id="btnStartCam" class="btn btn-outline-primary">Start Camera</button>
+                <button id="btnStopCam" class="btn btn-outline-secondary">Stop Camera</button>
+                <button id="btnSimulateRemote" class="btn btn-outline-info">Simulate Remote Stream (loopback)</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="card p-3">
+              <h6>Event Log</h6>
+              <div class="log" id="log"></div>
+              <div class="mt-2">
+                <button id="btnClearLog" class="btn btn-sm btn-light">Clear</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div class="mt-3 small text-muted">
+      Notes: Make sure server running at <code>http://127.0.0.1:8000</code>. Socket.IO connects to same origin. Use correct user ids registered in DB.
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    // config
+    const API_BASE = "http://0.0.0.0:8080";
+    const SOCKET_URL = API_BASE;
+    const perMinute = parseFloat(document.getElementById('perMinute').textContent) || 5;
+
+    // UI refs
+    const logEl = document.getElementById('log');
+    const userIdInput = document.getElementById('userId');
+    const roleInput = document.getElementById('role');
+    const btnConnect = document.getElementById('btnConnect');
+    const btnDisconnect = document.getElementById('btnDisconnect');
+    const btnRecharge = document.getElementById('btnRecharge');
+    const balanceDisplay = document.getElementById('balanceDisplay');
+    const rechargeAmount = document.getElementById('rechargeAmount');
+
+    const calleeIdInput = document.getElementById('calleeId');
+    const calleeRoleInput = document.getElementById('calleeRole');
+    const btnInitiate = document.getElementById('btnInitiate');
+    const btnAccept = document.getElementById('btnAccept');
+    const btnEnd = document.getElementById('btnEnd');
+    const sessionIdEl = document.getElementById('sessionId');
+    const callStatusEl = document.getElementById('callStatus');
+    const callTimerEl = document.getElementById('callTimer');
+
+    const btnStartCam = document.getElementById('btnStartCam');
+    const btnStopCam = document.getElementById('btnStopCam');
+    const btnSimRemote = document.getElementById('btnSimulateRemote');
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+
+    let socket = null;
+    let localStream = null;
+    let curSessionId = null;
+    let callTimer = null;
+    let elapsedSec = 0;
+
+    function log(msg, kind='info'){
+      const d = new Date().toLocaleTimeString();
+      const el = document.createElement('div');
+      el.innerHTML = `<small class="text-${kind==='error'?'danger':'muted'}">[${d}]</small> ${msg}`;
+      logEl.prepend(el);
+    }
+
+    btnClearLog?.addEventListener('click', ()=> logEl.innerHTML='');
+
+    btnConnect.addEventListener('click', async ()=>{
+      const userId = userIdInput.value.trim();
+      const role = roleInput.value.trim();
+      if(!userId){ alert('enter userId'); return; }
+      socket = io(SOCKET_URL, { auth: { userId, role }, transports:['websocket'] });
+      socket.on('connect', ()=> {
+        log('connected to socket id '+socket.id);
+        btnConnect.disabled=true; btnDisconnect.disabled=false;
+      });
+      socket.on('disconnect', ()=> {
+        log('socket disconnected','error');
+        btnConnect.disabled=false; btnDisconnect.disabled=true;
+      });
+
+      // server event listeners
+      const evs = ['call_invite','call_initiated','call_accept','call_reject','call_end',
+                   'free_trial_update','free_trial_ended','balance_deducted','provider_credited',
+                   'low_balance_warning','call_ended_for_insufficient_balance'];
+      evs.forEach(ev => socket.on(ev, d => {
+        log(`<strong>${ev}</strong> - ${JSON.stringify(d)}`);
+        // update UI for some events
+        if(ev === 'call_initiated') {
+          curSessionId = d.sessionId; sessionIdEl.textContent = curSessionId; callStatusEl.textContent='initiated';
+        }
+        if(ev === 'call_invite') {
+          curSessionId = d.sessionId; sessionIdEl.textContent = curSessionId; callStatusEl.textContent='invited';
+        }
+        if(ev === 'call_accept') {
+          callStatusEl.textContent='accepted';
+          startLocalTimer();
+        }
+        if(ev === 'call_end' || ev === 'call_ended_for_insufficient_balance') {
+          callStatusEl.textContent='ended';
+          stopLocalTimer();
+        }
+        if(ev === 'balance_deducted') {
+          balanceDisplay.textContent = ('Rs ' + (d.newBalance ?? '-'));
+        }
+      }));
+
+      socket.on('connect_error', (err)=> log('connect_error: '+err, 'error'));
+    });
+
+    btnDisconnect.addEventListener('click', ()=>{
+      if(socket) socket.disconnect();
+      btnConnect.disabled=false; btnDisconnect.disabled=true;
+      log('manually disconnected');
+    });
+
+    // Recharge
+    btnRecharge.addEventListener('click', async ()=>{
+      const userId = userIdInput.value.trim();
+      const amount = parseFloat(rechargeAmount.value);
+      if(!userId || !amount){ alert('enter userId and amount'); return; }
+      try{
+        const res = await fetch(API_BASE + '/api/wallet/recharge_wallet?user_id=' + encodeURIComponent(userId) + '&amount=' + amount, {
+          method: 'POST'
+        });
+        const data = await res.json();
+        log('recharge response: '+JSON.stringify(data));
+        // server emits balance_deducted on operations; we don't have get balance endpoint, so wait for events
+        // but display optimistic update:
+        balanceDisplay.textContent = '+'+amount;
+      }catch(err){
+        log('recharge error '+err,'error');
+      }
+    });
+
+    // Calls
+    btnInitiate.addEventListener('click', ()=>{
+      const callerId = userIdInput.value.trim();
+      const callerRole = roleInput.value.trim();
+      const calleeId = calleeIdInput.value.trim();
+      const calleeRole = calleeRoleInput.value.trim();
+      if(!callerId || !calleeId){ alert('enter caller and callee ids'); return; }
+      const payload = {
+        callerId, callerRole,
+        calleeId, calleeRole,
+        callType: 'audio',
+        appointmentId: null
+      };
+      socket.emit('call_initiate', payload);
+      log('emit call_initiate: '+JSON.stringify(payload));
+    });
+
+    btnAccept.addEventListener('click', ()=>{
+      if(!curSessionId){ alert('no session id'); return; }
+      socket.emit('call_accept', { sessionId: curSessionId });
+      log('emit call_accept for '+curSessionId);
+    });
+
+    btnEnd.addEventListener('click', ()=>{
+      if(!curSessionId){ alert('no session id'); return; }
+      socket.emit('call_end', { sessionId: curSessionId });
+      log('emit call_end for '+curSessionId);
+      stopLocalTimer();
+    });
+
+    // Local camera
+    btnStartCam.addEventListener('click', async ()=>{
+      try{
+        localStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+        localVideo.srcObject = localStream;
+        log('camera started');
+      }catch(e){ log('camera error: '+e,'error'); }
+    });
+    btnStopCam.addEventListener('click', ()=>{
+      if(localStream){
+        localStream.getTracks().forEach(t=>t.stop());
+        localVideo.srcObject = null;
+        localStream = null;
+        log('camera stopped');
+      }
+    });
+
+    // simulate remote by copying local stream
+    btnSimRemote.addEventListener('click', ()=>{
+      if(localVideo.srcObject){
+        remoteVideo.srcObject = localVideo.srcObject;
+        log('remote stream simulated (loopback)');
+      }else{
+        log('start camera first','error');
+      }
+    });
+
+    // timer helpers
+    function startLocalTimer(){
+      stopLocalTimer();
+      elapsedSec = 0;
+      callTimerEl.textContent = '00:00';
+      callTimer = setInterval(()=>{
+        elapsedSec++;
+        const mm = String(Math.floor(elapsedSec/60)).padStart(2,'0');
+        const ss = String(elapsedSec%60).padStart(2,'0');
+        callTimerEl.textContent = mm+':'+ss;
+        // update UI message when a full minute completes (simulate server deduction)
+        if(elapsedSec>0 && elapsedSec % 60 === 0){
+          log(`1 minute elapsed — Rs ${perMinute} should be deducted by server`);
+        }
+      },1000);
+    }
+    function stopLocalTimer(){ if(callTimer){ clearInterval(callTimer); callTimer=null; } elapsedSec=0; callTimerEl.textContent='00:00'; }
+
+    // helper to prefill testing ids (optional)
+    userIdInput.value = "";
+    calleeIdInput.value = "";
+  </script>
+</body>
+</html>
